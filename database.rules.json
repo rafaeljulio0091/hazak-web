@@ -1,0 +1,20 @@
+{
+  "rules": {
+    "devices": {
+      "$deviceId": {
+        "location": {
+          ".read": "auth != null && (auth.uid === $deviceId || auth.token.role === 'dashboard')",
+          ".write": "auth != null && auth.uid === $deviceId",
+          ".validate": "newData.hasChildren(['latitude', 'longitude', 'updatedAt'])"
+        },
+        "history": {
+          ".read": "auth != null && (auth.uid === $deviceId || auth.token.role === 'dashboard')",
+          ".write": "auth != null && auth.uid === $deviceId",
+          "$pushId": {
+            ".validate": "newData.hasChildren(['latitude', 'longitude', 'updatedAt'])"
+          }
+        }
+      }
+    }
+  }
+}
