@@ -31,11 +31,23 @@ export default {
                         DEFAULT: '#FF3B3B',
                         hover: '#FF5C5C',
                     },
+                    // Secondary "neon" accent, used sparingly for glow/gradient
+                    // highlights on the public landing page — the primary CTA
+                    // color everywhere else stays hazak.blue for consistency.
+                    neon: {
+                        DEFAULT: '#00AEEF',
+                        cyan: '#00BFFF',
+                        deep: '#008CFF',
+                    },
                 },
             },
             transitionDuration: {
                 150: '150ms',
                 200: '200ms',
+            },
+            boxShadow: {
+                'glow-blue': '0 0 40px -8px rgba(30, 107, 255, 0.55)',
+                'glow-neon': '0 0 45px -10px rgba(0, 174, 239, 0.5)',
             },
         },
     },
