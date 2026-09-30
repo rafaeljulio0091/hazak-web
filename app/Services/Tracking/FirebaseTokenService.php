@@ -14,9 +14,7 @@ use Kreait\Firebase\Contract\Auth;
  */
 class FirebaseTokenService
 {
-    public function __construct(private readonly Auth $auth)
-    {
-    }
+    public function __construct(private readonly Auth $auth) {}
 
     /**
      * @param  array<string, mixed>  $claims  Extra custom claims for security rules (e.g. role-based access).
@@ -25,6 +23,17 @@ class FirebaseTokenService
     {
         $token = $this->auth->createCustomToken((string) $user->getAuthIdentifier(), $claims);
 
-        return (string) $token;
+        return $token->toString();
+    }
+
+    /**
+     * Token for the live tracking screens. Only administrators receive the
+     * `dashboard` claim (read access to every device in the security
+     * rules); regular users get a plain token, so Firebase itself only lets
+     * them read devices listed under users/{uid}/sharing.
+     */
+    public function mintTrackingTokenFor(User $user): string
+    {
+        return $this->mintCustomTokenFor($user, $user->isAdmin() ? ['role' => 'dashboard'] : []);
     }
 }

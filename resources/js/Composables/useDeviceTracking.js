@@ -1,40 +1,54 @@
 import { firebaseAuth, firebaseDatabase } from '@/firebase';
 import { signInWithCustomToken } from 'firebase/auth';
 import { onValue, ref as databaseRef } from 'firebase/database';
-import { onBeforeUnmount, ref } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
 
 /**
- * Subscribes to a device's live position on the Firebase Realtime
- * Database. Authenticates the browser against Firebase using a
+ * Subscribes to the live position of one or more devices on the Firebase
+ * Realtime Database. Authenticates the browser against Firebase using a
  * short-lived custom token minted by Laravel (see
  * App\Services\Tracking\FirebaseTokenService), so Realtime Database
- * security rules can authorize the read per-user instead of the
+ * security rules authorize each read per-user (admins via the `dashboard`
+ * claim, regular users via users/{uid}/sharing/{deviceId}) instead of the
  * database being world-readable.
  *
- * @param {string} deviceId
- * @param {{ token: string, refreshToken: () => Promise<string>, initialPosition?: object|null }} options
+ * A device whose read is denied only flags its own entry in `errors`; the
+ * other listeners keep running.
+ *
+ * @param {string[]} deviceIds
+ * @param {{ token: string, refreshToken: () => Promise<string>, initialPositions?: Record<string, object|null> }} options
  */
-export function useDeviceTracking(deviceId, { token, refreshToken, initialPosition = null }) {
-    const position = ref(initialPosition);
+export function useDevicesTracking(deviceIds, { token, refreshToken, initialPositions = {} }) {
+    const positions = ref({ ...initialPositions });
+    const errors = ref({});
     const status = ref('connecting'); // 'connecting' | 'live' | 'error'
     const error = ref(null);
 
-    let stopListening = null;
+    let unsubscribers = [];
     let refreshTimer = null;
 
     const listen = () => {
-        const locationRef = databaseRef(firebaseDatabase, `devices/${deviceId}/location`);
+        if (!deviceIds.length) {
+            status.value = 'live';
+            return;
+        }
 
-        stopListening = onValue(
-            locationRef,
-            (snapshot) => {
-                position.value = snapshot.val();
-                status.value = 'live';
-            },
-            (err) => {
-                error.value = err;
-                status.value = 'error';
-            },
+        unsubscribers = deviceIds.map((deviceId) =>
+            onValue(
+                databaseRef(firebaseDatabase, `devices/${deviceId}/location`),
+                (snapshot) => {
+                    positions.value = { ...positions.value, [deviceId]: snapshot.val() };
+                    status.value = 'live';
+                },
+                (err) => {
+                    errors.value = { ...errors.value, [deviceId]: err };
+
+                    if (Object.keys(errors.value).length === deviceIds.length) {
+                        error.value = err;
+                        status.value = 'error';
+                    }
+                },
+            ),
         );
     };
 
@@ -64,8 +78,8 @@ export function useDeviceTracking(deviceId, { token, refreshToken, initialPositi
     };
 
     const stop = () => {
-        stopListening?.();
-        stopListening = null;
+        unsubscribers.forEach((unsubscribe) => unsubscribe());
+        unsubscribers = [];
 
         if (refreshTimer) {
             clearTimeout(refreshTimer);
@@ -75,5 +89,23 @@ export function useDeviceTracking(deviceId, { token, refreshToken, initialPositi
 
     onBeforeUnmount(stop);
 
-    return { position, status, error, start, stop };
+    return { positions, errors, status, error, start, stop };
+}
+
+/**
+ * Single-device convenience wrapper around useDevicesTracking.
+ *
+ * @param {string} deviceId
+ * @param {{ token: string, refreshToken: () => Promise<string>, initialPosition?: object|null }} options
+ */
+export function useDeviceTracking(deviceId, { token, refreshToken, initialPosition = null }) {
+    const tracking = useDevicesTracking([deviceId], {
+        token,
+        refreshToken,
+        initialPositions: { [deviceId]: initialPosition },
+    });
+
+    const position = computed(() => tracking.positions.value[deviceId] ?? null);
+
+    return { position, status: tracking.status, error: tracking.error, start: tracking.start, stop: tracking.stop };
 }

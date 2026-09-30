@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Repositories\DeviceSharingRepository;
+use App\Repositories\Firebase\FirebaseDeviceSharingRepository;
 use Illuminate\Support\ServiceProvider;
 use Kreait\Firebase\Contract\Auth as FirebaseAuth;
 use Kreait\Firebase\Contract\Database as FirebaseDatabase;
@@ -16,7 +18,7 @@ class FirebaseServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(Factory::class, function () {
-            $factory = (new Factory())->withServiceAccount([
+            $factory = (new Factory)->withServiceAccount([
                 'type' => 'service_account',
                 'project_id' => config('services.firebase.project_id'),
                 'client_email' => config('services.firebase.client_email'),
@@ -39,5 +41,7 @@ class FirebaseServiceProvider extends ServiceProvider
             FirebaseDatabase::class,
             fn ($app) => $app->make(Factory::class)->createDatabase(),
         );
+
+        $this->app->bind(DeviceSharingRepository::class, FirebaseDeviceSharingRepository::class);
     }
 }

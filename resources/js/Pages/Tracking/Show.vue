@@ -1,12 +1,11 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import DeviceMap from '@/Components/DeviceMap.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import { useDeviceTracking } from '@/Composables/useDeviceTracking';
 import { Head } from '@inertiajs/vue3';
 import axios from 'axios';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onMounted } from 'vue';
 
 const props = defineProps({
     deviceId: {
@@ -34,9 +33,7 @@ const { position, status, error, start } = useDeviceTracking(props.deviceId, {
     initialPosition: props.initialPosition,
 });
 
-const mapEl = ref(null);
-let map = null;
-let marker = null;
+const mapPositions = computed(() => ({ [props.deviceId]: position.value }));
 
 const statusMeta = computed(() => {
     if (status.value === 'live') return { badge: 'active', label: 'Recebendo posição' };
@@ -49,43 +46,7 @@ const lastUpdateLabel = computed(() => {
     return new Date(position.value.updatedAt).toLocaleTimeString('pt-BR');
 });
 
-watch(position, (value) => {
-    if (!value || !map) return;
-
-    const latLng = [value.latitude, value.longitude];
-
-    if (!marker) {
-        marker = L.marker(latLng).addTo(map);
-    } else {
-        marker.setLatLng(latLng);
-    }
-
-    map.panTo(latLng);
-});
-
-onMounted(() => {
-    map = L.map(mapEl.value, {
-        center: props.initialPosition
-            ? [props.initialPosition.latitude, props.initialPosition.longitude]
-            : [-23.55, -46.63],
-        zoom: 15,
-    });
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(map);
-
-    if (props.initialPosition) {
-        marker = L.marker([props.initialPosition.latitude, props.initialPosition.longitude]).addTo(map);
-    }
-
-    start();
-});
-
-onBeforeUnmount(() => {
-    map?.remove();
-    map = null;
-});
+onMounted(start);
 </script>
 
 <template>
@@ -125,7 +86,11 @@ onBeforeUnmount(() => {
             </div>
 
             <div class="overflow-hidden rounded-2xl border border-white/10">
-                <div ref="mapEl" class="h-[28rem] w-full" role="img" aria-label="Mapa com a localização em tempo real do dispositivo"></div>
+                <DeviceMap
+                    :positions="mapPositions"
+                    follow
+                    aria-label="Mapa com a localização em tempo real do dispositivo"
+                />
             </div>
         </div>
     </AuthenticatedLayout>

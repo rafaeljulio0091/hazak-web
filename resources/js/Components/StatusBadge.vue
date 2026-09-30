@@ -6,6 +6,10 @@ const props = defineProps({
         type: String,
         required: true,
     },
+    label: {
+        type: String,
+        default: null, // overrides the default label for the status
+    },
 });
 
 const variants = {
@@ -25,7 +29,7 @@ const labels = {
 };
 
 const variantClasses = computed(() => variants[props.status] ?? variants.idle);
-const label = computed(() => labels[props.status] ?? props.status);
+const text = computed(() => props.label ?? labels[props.status] ?? props.status);
 </script>
 
 <template>
@@ -37,6 +41,6 @@ const label = computed(() => labels[props.status] ?? props.status);
             class="h-1.5 w-1.5 rounded-full"
             :class="status === 'critical' ? 'animate-pulse bg-hazak-critical' : 'bg-current'"
         ></span>
-        {{ label }}
+        {{ text }}
     </span>
 </template>

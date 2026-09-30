@@ -1,9 +1,20 @@
 {
   "rules": {
+    "users": {
+      "$uid": {
+        "sharing": {
+          ".read": "auth != null && (auth.uid === $uid || auth.token.role === 'dashboard')",
+          "$deviceId": {
+            ".write": "auth != null && auth.uid === $deviceId",
+            ".validate": "newData.val() === true || newData.hasChildren()"
+          }
+        }
+      }
+    },
     "devices": {
       "$deviceId": {
         "location": {
-          ".read": "auth != null && (auth.uid === $deviceId || auth.token.role === 'dashboard')",
+          ".read": "auth != null && (auth.uid === $deviceId || auth.token.role === 'dashboard' || root.child('users').child(auth.uid).child('sharing').child($deviceId).val() === true || root.child('users').child(auth.uid).child('sharing').child($deviceId).hasChildren())",
           ".write": "auth != null && auth.uid === $deviceId",
           ".validate": "newData.hasChildren(['latitude', 'longitude', 'updatedAt'])"
         },
