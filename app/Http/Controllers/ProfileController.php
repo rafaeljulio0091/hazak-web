@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Rules\CurrentFirebasePassword;
+use App\Services\FirebaseAccountService;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,15 +29,9 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(ProfileUpdateRequest $request, FirebaseAccountService $accounts): RedirectResponse
     {
-        $request->user()->fill($request->validated());
-
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
-        }
-
-        $request->user()->save();
+        $accounts->updateProfile($request->user(), $request->validated('name'), $request->validated('email'));
 
         return Redirect::route('profile.edit');
     }
@@ -43,17 +39,17 @@ class ProfileController extends Controller
     /**
      * Delete the user's account.
      */
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request, FirebaseAccountService $accounts): RedirectResponse
     {
         $request->validate([
-            'password' => ['required', 'current_password'],
+            'password' => ['required', new CurrentFirebasePassword($request->user())],
         ]);
 
         $user = $request->user();
 
         Auth::logout();
 
-        $user->delete();
+        $accounts->delete($user);
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

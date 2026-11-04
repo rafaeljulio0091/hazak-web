@@ -2,8 +2,8 @@
 
 namespace App\Services\Tracking;
 
-use App\Models\User;
 use App\Repositories\DeviceSharingRepository;
+use Illuminate\Contracts\Auth\Authenticatable;
 
 /**
  * Builds the regular user's dashboard: the devices explicitly shared with
@@ -20,7 +20,7 @@ class SharedDevicesService
     /**
      * @return list<array{id: string, label: ?string, position: array<string, mixed>|null}>
      */
-    public function overviewFor(User $user): array
+    public function overviewFor(Authenticatable $user): array
     {
         $devices = [];
 

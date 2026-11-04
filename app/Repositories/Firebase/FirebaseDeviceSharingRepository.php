@@ -2,9 +2,9 @@
 
 namespace App\Repositories\Firebase;
 
-use App\Models\User;
 use App\Repositories\DeviceSharingRepository;
 use App\Support\DeviceId;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Kreait\Firebase\Contract\Database;
 
 /**
@@ -21,7 +21,7 @@ class FirebaseDeviceSharingRepository implements DeviceSharingRepository
 {
     public function __construct(private readonly Database $database) {}
 
-    public function sharedWith(User $user): array
+    public function sharedWith(Authenticatable $user): array
     {
         $entries = $this->database
             ->getReference($this->sharingPath($user))
@@ -50,7 +50,7 @@ class FirebaseDeviceSharingRepository implements DeviceSharingRepository
         return $shared;
     }
 
-    public function isSharedWith(User $user, string $deviceId): bool
+    public function isSharedWith(Authenticatable $user, string $deviceId): bool
     {
         if (! DeviceId::isValid($deviceId)) {
             return false;
@@ -68,7 +68,7 @@ class FirebaseDeviceSharingRepository implements DeviceSharingRepository
         return $value === true || (is_array($value) && $value !== []);
     }
 
-    private function sharingPath(User $user): string
+    private function sharingPath(Authenticatable $user): string
     {
         return 'users/'.$user->getAuthIdentifier().'/sharing';
     }

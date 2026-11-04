@@ -26,8 +26,14 @@ const form = useForm({
 const showPassword = ref(false);
 
 const submit = () => {
+    if (form.processing) return;
+
+    showPassword.value = false;
     form.post(route('login'), {
-        onFinish: () => form.reset('password'),
+        onFinish: () => {
+            form.reset('password');
+            showPassword.value = false;
+        },
     });
 };
 </script>
@@ -51,6 +57,9 @@ const submit = () => {
         </div>
 
         <form @submit.prevent="submit" class="space-y-4">
+            <div v-if="form.errors.authentication" role="alert" aria-live="polite">
+                <InputError :message="form.errors.authentication" />
+            </div>
             <div>
                 <InputLabel for="email" value="E-mail" />
 
@@ -84,13 +93,15 @@ const submit = () => {
                         type="email"
                         class="pl-10"
                         v-model="form.email"
+                        :aria-invalid="!!form.errors.email"
+                        :aria-describedby="form.errors.email ? 'email-error' : undefined"
                         required
                         autofocus
                         autocomplete="username"
                     />
                 </div>
 
-                <InputError class="mt-2" :message="form.errors.email" />
+                <InputError id="email-error" class="mt-2" :message="form.errors.email" role="alert" />
             </div>
 
             <div>
@@ -121,6 +132,8 @@ const submit = () => {
                         :type="showPassword ? 'text' : 'password'"
                         class="pl-10 pr-10"
                         v-model="form.password"
+                        minlength="6"
+                        maxlength="4096"
                         required
                         autocomplete="current-password"
                     />
@@ -186,6 +199,8 @@ const submit = () => {
                     Esqueci minha senha
                 </Link>
             </div>
+
+            <InputError :message="form.errors.remember" role="alert" />
 
             <PrimaryButton
                 class="w-full"

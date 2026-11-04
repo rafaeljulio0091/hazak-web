@@ -2,7 +2,7 @@
 
 namespace App\Repositories;
 
-use App\Models\User;
+use Illuminate\Contracts\Auth\Authenticatable;
 
 /**
  * Source of truth for which devices have shared their location with a
@@ -14,7 +14,7 @@ interface DeviceSharingRepository
     /**
      * @return array<string, array{label: ?string}> Keyed by deviceId.
      */
-    public function sharedWith(User $user): array;
+    public function sharedWith(Authenticatable $user): array;
 
-    public function isSharedWith(User $user, string $deviceId): bool;
+    public function isSharedWith(Authenticatable $user, string $deviceId): bool;
 }

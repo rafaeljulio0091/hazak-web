@@ -7,6 +7,70 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Login do Hazak Web
+
+O login usa Firebase Authentication com sessão Laravel. No Inertia, `POST /login`
+retorna um redirecionamento HTTP 302: `/dashboard` quando autentica, ou `/login`
+com erros de validação quando a tentativa falha. A tela exibe uma mensagem
+genérica para credenciais inválidas e uma mensagem de indisponibilidade para
+falhas de comunicação ou configuração do Firebase. Contas desativadas não podem
+entrar nem recuperar sessões existentes. Papéis ausentes ou desconhecidos usam
+o perfil de menor privilégio (`user`); apenas `admin` concede acesso administrativo.
+
+As credenciais enviadas pelo próprio navegador permanecem visíveis na aba
+Network do DevTools, inclusive com HTTPS. HTTPS protege o tráfego entre cliente
+e servidor. Não compartilhe capturas com senhas, cookies ou tokens. Senhas não
+devem ser gravadas em logs, armazenamento do navegador, props do Inertia ou
+sessões. O formulário limpa a senha ao concluir a tentativa. Os avisos de falha
+de login registram apenas o tipo da exceção, sem a exceção original do SDK, que
+pode conter requisições com credenciais.
+
+Em produção, configure TLS no servidor/proxy e as variáveis:
+
+```dotenv
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://seu-dominio.example
+SESSION_SECURE_COOKIE=true
+SESSION_HTTP_ONLY=true
+SESSION_SAME_SITE=lax
+```
+
+As rotas de autenticação redirecionam leituras HTTP para HTTPS e recusam envios
+HTTP em produção. Isso não substitui TLS, redirecionamento HTTP para HTTPS no
+servidor antes de servir a aplicação, ou configuração correta de proxies
+confiáveis quando o TLS termina no proxy. Restrinja os proxies confiáveis aos
+endereços da infraestrutura; sem isso, podem ocorrer ciclos de redirecionamento.
+O ambiente local continua aceitando HTTP.
+
+O projeto Firebase deve ter o provedor E-mail/Senha habilitado, e o usuário deve
+existir no mesmo projeto configurado no backend. As chamadas ao Firebase têm
+timeout de conexão de 3 segundos e total de 10 segundos por requisição ao SDK,
+ajustáveis por `FIREBASE_CONNECT_TIMEOUT` e `FIREBASE_TIMEOUT` (mínimo de 1 segundo).
+O login pode fazer mais de uma chamada ao SDK. O limite existente de cinco
+falhas por e-mail/IP em um minuto foi mantido, com a chave do cache em hash.
+Em múltiplas instâncias, use um cache compartilhado para o limite valer em todos
+os servidores.
+
+Após alterar configuração de ambiente, atualize o cache de configuração:
+
+```bash
+php artisan config:clear
+# Em produção, após conferir a configuração:
+php artisan config:cache
+```
+
+Esta revisão não adiciona migrações. A tabela `sessions.user_id` precisa aceitar
+UIDs de texto do Firebase; aplique a migração existente
+`2026_10_01_000000_change_session_user_id_to_string.php` nos ambientes pendentes.
+
+Validação local:
+
+```bash
+php artisan test
+npm run build
+```
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

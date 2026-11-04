@@ -2,43 +2,39 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Models\User;
+use App\Auth\FirebaseUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\InteractsWithFakeFirebase;
 use Tests\TestCase;
 
 class PasswordConfirmationTest extends TestCase
 {
+    use InteractsWithFakeFirebase;
     use RefreshDatabase;
+
+    private function firebaseUser(): FirebaseUser
+    {
+        return new FirebaseUser('firebase-test-user', 'Test User', 'test@example.com', 'user', true);
+    }
 
     public function test_confirm_password_screen_can_be_rendered(): void
     {
-        $user = User::factory()->create();
-
-        $response = $this->actingAs($user)->get('/confirm-password');
-
-        $response->assertStatus(200);
+        $this->actingAs($this->firebaseUser())->get('/confirm-password')->assertOk();
     }
 
-    public function test_password_can_be_confirmed(): void
+    public function test_password_can_be_confirmed_against_firebase(): void
     {
-        $user = User::factory()->create();
-
-        $response = $this->actingAs($user)->post('/confirm-password', [
+        $this->fakeFirebaseUser();
+        $this->actingAs($this->firebaseUser())->post('/confirm-password', [
             'password' => 'password',
-        ]);
-
-        $response->assertRedirect();
-        $response->assertSessionHasNoErrors();
+        ])->assertRedirect()->assertSessionHasNoErrors();
     }
 
-    public function test_password_is_not_confirmed_with_invalid_password(): void
+    public function test_password_is_not_confirmed_with_invalid_firebase_password(): void
     {
-        $user = User::factory()->create();
-
-        $response = $this->actingAs($user)->post('/confirm-password', [
+        $this->fakeFirebaseUser();
+        $this->actingAs($this->firebaseUser())->post('/confirm-password', [
             'password' => 'wrong-password',
-        ]);
-
-        $response->assertSessionHasErrors();
+        ])->assertSessionHasErrors();
     }
 }

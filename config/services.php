@@ -36,6 +36,8 @@ return [
     ],
 
     'firebase' => [
+        'connect_timeout' => (float) env('FIREBASE_CONNECT_TIMEOUT', 3),
+        'timeout' => (float) env('FIREBASE_TIMEOUT', 10),
         'project_id' => env('FIREBASE_PROJECT_ID'),
         'client_email' => env('FIREBASE_CLIENT_EMAIL'),
         'private_key' => str_replace('\\n', "\n", (string) env('FIREBASE_PRIVATE_KEY', '')),
