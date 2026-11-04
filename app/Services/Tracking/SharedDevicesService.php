@@ -41,6 +41,9 @@ class SharedDevicesService
         }
 
         foreach ($this->sharing->sharedWith($user) as $deviceId => $meta) {
+            // PHP turns numeric-string array keys into ints.
+            $deviceId = (string) $deviceId;
+
             if ($deviceId === $ownId) {
                 continue;
             }

@@ -60,6 +60,14 @@ trait InteractsWithFakeFirebase
             ], $profile))
             ->byDefault();
 
+        // The account's own device (devices/{uid}) has not reported a position.
+        $locationReference = Mockery::mock(Reference::class);
+        $locationReference->shouldReceive('getValue')->andReturn(null)->byDefault();
+        $database->shouldReceive('getReference')
+            ->with("devices/{$uid}/location")
+            ->andReturn($locationReference)
+            ->byDefault();
+
         $this->app->instance(FirebaseAuth::class, $auth);
         $this->app->instance(Database::class, $database);
     }
