@@ -22,6 +22,7 @@ class DevicePolicy
         }
 
         return (method_exists($user, 'isAdmin') && $user->isAdmin())
+            || DeviceId::isOwnedBy($user, $deviceId)
             || $this->sharing->isSharedWith($user, $deviceId);
     }
 }

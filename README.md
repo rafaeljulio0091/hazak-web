@@ -71,6 +71,33 @@ php artisan test
 npm run build
 ```
 
+## Mapa do dashboard do usuário (`/my/dashboard`)
+
+O dashboard lê o Firebase Realtime Database do mesmo projeto usado pelo app móvel e
+exibe, para a conta logada:
+
+1. **O dispositivo da própria conta**: `devices/{uid}/location`, em que `{uid}` é o UID
+   Firebase Auth da conta logada. É o mesmo nó que as regras (`database.rules.json`)
+   deixam o app gravar (`auth.uid === $deviceId`). Por isso o app e o painel precisam
+   usar **a mesma conta** (mesmo e-mail) no mesmo projeto Firebase. O dispositivo só
+   aparece depois de existir uma posição gravada.
+2. **Dispositivos compartilhados com a conta**: cada chave `true` ou objeto (`{"label": "..."}`)
+   em `users/{uid}/sharing/{deviceId}`, com a posição em `devices/{deviceId}/location`.
+
+O nó `location` precisa ter `latitude`, `longitude` (números) e `updatedAt`
+(timestamp em milissegundos). `heading` e `speed` são opcionais.
+
+O link público do app (`/track/share_…`) usa uma estrutura própria do app móvel, que
+não está neste repositório. Se o app gravar a posição só nesse nó de compartilhamento,
+o painel não a encontra. Para conferir, sem expor coordenadas, rode:
+
+```bash
+php artisan tracking:inspect email-da-conta@exemplo.com
+```
+
+O comando lista apenas nomes de chaves (raiz, `users/{uid}`, `users/{uid}/sharing`,
+`devices/{uid}`) e indica se `devices/{uid}/location` tem os campos esperados.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

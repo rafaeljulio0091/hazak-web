@@ -26,6 +26,9 @@ class UserDashboardTest extends TestCase
         'updatedAt' => 1700000000000,
     ];
 
+    /** Device ids that have a location node in the (fake) Realtime Database. */
+    private array $reporting = ['device-a', 'device-b', 'device-other', 'any-device'];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -36,7 +39,9 @@ class UserDashboardTest extends TestCase
         $this->app->instance(DeviceSharingRepository::class, $this->sharing);
 
         $this->mock(DeviceTrackingService::class, function (MockInterface $mock) {
-            $mock->shouldReceive('latestPosition')->andReturn($this->position);
+            $mock->shouldReceive('latestPosition')->andReturnUsing(
+                fn (string $deviceId) => in_array($deviceId, $this->reporting, true) ? $this->position : null,
+            );
         });
 
         $this->mock(FirebaseTokenService::class, function (MockInterface $mock) {
@@ -183,5 +188,75 @@ class UserDashboardTest extends TestCase
             ->postJson('/tracking/token')
             ->assertOk()
             ->assertExactJson(['token' => 'user-token']);
+    }
+
+    public function test_user_dashboard_lists_the_device_linked_to_the_logged_account(): void
+    {
+        $user = User::factory()->create();
+        $ownId = (string) $user->getAuthIdentifier();
+        $this->reporting[] = $ownId;
+        $this->sharing->share('device-a', $user, 'Carro');
+
+        $this->actingAs($user)
+            ->get('/my/dashboard')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('User/Dashboard', true)
+                ->has('devices', 2)
+                ->where('devices.0.id', $ownId)
+                ->where('devices.0.own', true)
+                ->where('devices.0.label', 'Meu dispositivo')
+                ->where('devices.0.position.latitude', -23.5)
+                ->where('devices.1.id', 'device-a')
+                ->where('devices.1.own', false)
+            );
+    }
+
+    public function test_own_device_without_reported_position_keeps_the_empty_state(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->get('/my/dashboard')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->has('devices', 0));
+    }
+
+    public function test_own_device_is_not_listed_twice_when_also_shared(): void
+    {
+        $user = User::factory()->create();
+        $ownId = (string) $user->getAuthIdentifier();
+        $this->reporting[] = $ownId;
+        $this->sharing->share($ownId, $user, 'Duplicado');
+
+        $this->actingAs($user)
+            ->get('/my/dashboard')
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('devices', 1)
+                ->where('devices.0.own', true)
+            );
+    }
+
+    public function test_user_can_track_the_device_linked_to_their_account(): void
+    {
+        $user = User::factory()->create();
+        $ownId = (string) $user->getAuthIdentifier();
+        $this->reporting[] = $ownId;
+
+        $this->actingAs($user)
+            ->get('/my/devices/'.$ownId)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Tracking/Show', true)
+                ->where('deviceId', $ownId)
+                ->where('initialPosition.latitude', -23.5)
+            );
+    }
+
+    public function test_user_cannot_track_the_device_of_another_account(): void
+    {
+        $other = User::factory()->create();
+
+        $this->actingAs(User::factory()->create())
+            ->get('/my/devices/'.$other->getAuthIdentifier())
+            ->assertForbidden();
     }
 }

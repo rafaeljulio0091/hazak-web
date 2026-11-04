@@ -12,7 +12,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 const props = defineProps({
     devices: {
         type: Array,
-        required: true, // [{ id, label, position }]
+        required: true, // [{ id, label, own, position }]
     },
     firebaseToken: {
         type: String,
@@ -98,7 +98,7 @@ onBeforeUnmount(() => clearInterval(clock));
                 <div>
                     <h2 class="text-xl font-bold tracking-tight text-white">Meus dispositivos</h2>
                     <p class="mt-1 text-sm text-slate-400">
-                        Localização em tempo real dos dispositivos compartilhados com você.
+                        Localização em tempo real do seu dispositivo e dos compartilhados com você.
                     </p>
                 </div>
                 <span
@@ -116,14 +116,14 @@ onBeforeUnmount(() => clearInterval(clock));
 
         <div v-if="!devices.length" class="rounded-2xl border border-white/10 bg-hazak-graphite">
             <EmptyState
-                title="Nenhum dispositivo compartilhado"
-                description="Quando alguém compartilhar a localização de um dispositivo com você, ele aparecerá aqui."
+                title="Nenhum dispositivo com localização"
+                description="Entre no app Hazak com esta mesma conta para enviar a localização do seu dispositivo, ou peça que alguém compartilhe um dispositivo com você."
             />
         </div>
 
         <div v-else class="space-y-6">
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <StatCard label="Dispositivos compartilhados" :value="devices.length" />
+                <StatCard label="Dispositivos" :value="devices.length" />
                 <StatCard label="Online agora" :value="onlineCount" hint="posição nos últimos 5 min" />
                 <StatCard label="Última atualização" :value="lastUpdateLabel" />
             </div>
